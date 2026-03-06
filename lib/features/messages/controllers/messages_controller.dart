@@ -3,6 +3,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/models/message_model.dart';
 import '../../../core/services/firebase_service.dart';
+import '../../../core/utils/channel_utils.dart';
+import '../../pairing/controllers/user_profile_controller.dart';
 
 final messagesProvider =
     AsyncNotifierProvider<MessagesNotifier, List<MessageModel>>(
@@ -13,9 +15,12 @@ class MessagesNotifier extends AsyncNotifier<List<MessageModel>> {
   Future<List<MessageModel>> build() async => [];
 
   Future<void> sendMessage(String content) async {
+    final profile = ref.read(userProfileProvider).value;
+    if (profile == null || !profile.isPaired) return;
+
     final msg = MessageModel(
       id: const Uuid().v4(),
-      senderId: 'me', // replace with actual user ID
+      senderId: profile.id.toString(),
       content: content,
       type: MessageType.text,
       sentAt: DateTime.now(),
@@ -26,8 +31,12 @@ class MessagesNotifier extends AsyncNotifier<List<MessageModel>> {
     state = AsyncData([msg, ...current]);
 
     // Relay via Firebase (auto-deleted after delivery)
+    final channelId = generateChannelId(
+      profile.id.toString(),
+      profile.partnerFcm!,
+    );
     await FirebaseService.instance.sendMessage(
-      channelId: 'channel_id_placeholder', // replace with real channel ID
+      channelId: channelId,
       payload: msg.toMap(),
     );
   }

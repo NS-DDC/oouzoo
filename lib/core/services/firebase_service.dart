@@ -38,8 +38,23 @@ class FirebaseService {
     await ref.remove();
   }
 
+  /// Send daily question answer to partner (relay-only).
+  Future<void> sendDailyAnswer({
+    required String channelId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final ref = _db.ref('wormhole/$channelId/daily_answer');
+    await ref.set(payload);
+    await ref.remove();
+  }
+
   /// Listen for incoming messages on my channel.
   Stream<DatabaseEvent> listenForMessages(String myChannelId) {
     return _db.ref('wormhole/$myChannelId/message').onValue;
+  }
+
+  /// Listen for incoming daily question answers.
+  Stream<DatabaseEvent> listenForDailyAnswers(String channelId) {
+    return _db.ref('wormhole/$channelId/daily_answer').onValue;
   }
 }

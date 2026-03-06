@@ -13,20 +13,30 @@ class BackupService {
   static final BackupService instance = BackupService._();
   BackupService._();
 
+  static const _backupVersion = 2;
+
+  static const _tables = [
+    'user_profile',
+    'planet',
+    'inventory',
+    'diary',
+    'anniversary',
+    'purchases',
+    'daily_question',
+  ];
+
   /// Export all tables to JSON and share via OS share sheet.
   Future<void> exportBackup() async {
     final db = await DatabaseHelper.instance.database;
 
-    final backup = {
-      'version': 1,
+    final backup = <String, dynamic>{
+      'version': _backupVersion,
       'exported_at': DateTime.now().toIso8601String(),
-      'user_profile': await db.query('user_profile'),
-      'planet': await db.query('planet'),
-      'inventory': await db.query('inventory'),
-      'diary': await db.query('diary'),
-      'anniversary': await db.query('anniversary'),
-      'purchases': await db.query('purchases'),
     };
+
+    for (final table in _tables) {
+      backup[table] = await db.query(table);
+    }
 
     final json = jsonEncode(backup);
     final dir = await getTemporaryDirectory();
@@ -40,6 +50,7 @@ class BackupService {
   }
 
   /// Import JSON backup and overwrite local DB.
+  /// Supports both v1 and v2 backup files.
   Future<bool> importBackup() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -50,18 +61,17 @@ class BackupService {
     final file = File(result.files.single.path!);
     final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
 
-    if ((json['version'] as int?) != 1) return false;
+    final version = json['version'] as int?;
+    if (version == null || version < 1 || version > _backupVersion) {
+      return false;
+    }
 
     final db = await DatabaseHelper.instance.database;
     await db.transaction((txn) async {
-      for (final table in [
-        'user_profile',
-        'planet',
-        'inventory',
-        'diary',
-        'anniversary',
-        'purchases',
-      ]) {
+      for (final table in _tables) {
+        // Skip tables that don't exist in older backups
+        if (!json.containsKey(table)) continue;
+
         await txn.delete(table);
         for (final row in (json[table] as List)) {
           await txn.insert(table, Map<String, dynamic>.from(row as Map));

@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -94,6 +94,9 @@ class DatabaseHelper {
       )
     ''');
 
+    // v2: daily_question table
+    await _createDailyQuestionTable(db);
+
     // Insert default rows
     final now = DateTime.now().toIso8601String();
     await db.insert('planet', {
@@ -106,6 +109,23 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Future migration scripts go here
+    if (oldVersion < 2) {
+      await _createDailyQuestionTable(db);
+    }
+  }
+
+  Future<void> _createDailyQuestionTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE daily_question (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        question_id         INTEGER NOT NULL,
+        question            TEXT NOT NULL,
+        my_answer           TEXT,
+        partner_answer      TEXT,
+        answered_at         TEXT,
+        partner_answered_at TEXT,
+        date                TEXT NOT NULL UNIQUE
+      )
+    ''');
   }
 }

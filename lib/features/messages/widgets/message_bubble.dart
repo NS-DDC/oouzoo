@@ -3,10 +3,15 @@ import '../../../core/models/message_model.dart';
 
 class MessageBubble extends StatelessWidget {
   final MessageModel message;
+  final String myUserId;
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    required this.myUserId,
+  });
 
-  bool get _isMe => message.senderId == 'me';
+  bool get _isMe => message.senderId == myUserId;
 
   @override
   Widget build(BuildContext context) {

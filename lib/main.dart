@@ -7,6 +7,8 @@ import 'core/services/fcm_service.dart';
 import 'core/services/admob_service.dart';
 import 'core/services/iap_service.dart';
 import 'features/home/screens/home_screen.dart';
+import 'features/pairing/controllers/user_profile_controller.dart';
+import 'features/pairing/screens/pairing_screen.dart';
 import 'shared/theme/app_theme.dart';
 import 'shared/widgets/space_background.dart';
 import 'firebase_options.dart';
@@ -45,7 +47,45 @@ class OouzooApp extends StatelessWidget {
       title: 'OOUZOO',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const SpaceBackground(child: HomeScreen()),
+      home: const SpaceBackground(child: _AppRouter()),
+    );
+  }
+}
+
+/// Routes to PairingScreen or HomeScreen based on user profile state.
+class _AppRouter extends ConsumerWidget {
+  const _AppRouter();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
+
+    return profileAsync.when(
+      data: (profile) {
+        if (profile == null) {
+          // No profile yet — show onboarding + pairing
+          return const PairingScreen();
+        }
+        // Profile exists — go to home (pairing is optional)
+        return const HomeScreen();
+      },
+      loading: () => const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('🪐', style: TextStyle(fontSize: 48)),
+              SizedBox(height: 16),
+              CircularProgressIndicator(color: AppTheme.starYellow),
+            ],
+          ),
+        ),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text('$e')),
+      ),
     );
   }
 }

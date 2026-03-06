@@ -2,17 +2,24 @@
   "rules": {
     "wormhole": {
       "$channelId": {
-        // 웜홀 채널: 읽기/쓰기 모두 허용 (인증 없이)
-        // 메시지는 전달 즉시 삭제되므로 개인정보 저장 없음
         ".read": true,
         ".write": true,
         "message": {
-          // 메시지 최대 크기 제한 (1KB)
           ".validate": "newData.val().length < 1000"
         },
         "mood": {
           ".validate": "newData.hasChildren(['sender_id', 'mood', 'sent_at'])"
+        },
+        "daily_answer": {
+          ".validate": "newData.hasChildren(['sender_id', 'answer', 'date', 'sent_at'])"
         }
+      }
+    },
+    "pairing": {
+      "$code": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['fcm_token', 'user_id', 'nickname'])"
       }
     }
   }

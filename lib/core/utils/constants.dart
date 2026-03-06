@@ -41,8 +41,17 @@ class AppConstants {
   // ── Interstitial show probability ─────────────────────────────────────────
   static const double interstitialProbability = 0.3;
 
+  // ── Daily Question rewards ────────────────────────────────────────────────
+  static const int shardsPerDailyAnswer = 15;
+  static const int shardsPerBothAnswered = 10;
+
+  // ── Pairing ─────────────────────────────────────────────────────────────
+  static const int inviteCodeLength = 6;
+  static const int inviteCodeTtlMinutes = 10;
+
   // ── Firebase ──────────────────────────────────────────────────────────────
   static const String wormholePrefix = 'wormhole';
+  static const String pairingPrefix = 'pairing';
 
   // ── Assets ────────────────────────────────────────────────────────────────
   static String planetAsset(int level) => 'assets/images/planets/planet_lv$level.png';

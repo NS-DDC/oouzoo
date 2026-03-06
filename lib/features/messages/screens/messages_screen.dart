@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../pairing/controllers/user_profile_controller.dart';
 import '../controllers/messages_controller.dart';
 import '../widgets/message_bubble.dart';
 
@@ -23,6 +24,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final messages = ref.watch(messagesProvider);
+    final profile = ref.watch(userProfileProvider).value;
+    final myUserId = profile?.id.toString() ?? '';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -38,7 +41,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                 reverse: true,
                 padding: const EdgeInsets.all(16),
                 itemCount: msgs.length,
-                itemBuilder: (_, i) => MessageBubble(message: msgs[i]),
+                itemBuilder: (_, i) => MessageBubble(
+                  message: msgs[i],
+                  myUserId: myUserId,
+                ),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('$e')),

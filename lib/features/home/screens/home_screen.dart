@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../planet/screens/planet_screen.dart';
+import '../../daily_question/screens/daily_question_screen.dart';
 import '../../messages/screens/messages_screen.dart';
 import '../../diary/screens/diary_screen.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -20,6 +21,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   static const _screens = [
     PlanetScreen(),
+    DailyQuestionScreen(),
     MessagesScreen(),
     DiaryScreen(),
     SettingsScreen(),
@@ -54,6 +56,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Icon(Icons.public_outlined),
             selectedIcon: Icon(Icons.public),
             label: '우리 별',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.question_answer_outlined),
+            selectedIcon: Icon(Icons.question_answer),
+            label: '오늘의 질문',
           ),
           NavigationDestination(
             icon: Icon(Icons.mail_outline),
