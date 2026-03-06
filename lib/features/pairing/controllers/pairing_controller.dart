@@ -47,6 +47,8 @@ class PairingNotifier extends AsyncNotifier<PairingState> {
   StreamSubscription<DatabaseEvent>? _partnerListener;
   final _db = FirebaseDatabase.instance;
 
+  static const _maxCodeRetries = 5;
+
   @override
   Future<PairingState> build() async {
     ref.onDispose(() => _partnerListener?.cancel());
@@ -59,32 +61,37 @@ class PairingNotifier extends AsyncNotifier<PairingState> {
     final profile = ref.read(userProfileProvider).value;
     if (profile == null) return;
 
-    final code = _generateCode();
     final fcmToken = await FcmService.getToken();
 
-    final codeRef = _db.ref('${AppConstants.pairingPrefix}/$code');
+    // Retry loop with depth limit to avoid stack overflow
+    for (int attempt = 0; attempt < _maxCodeRetries; attempt++) {
+      final code = _generateCode();
+      final codeRef = _db.ref('${AppConstants.pairingPrefix}/$code');
 
-    // Check for collision
-    final existing = await codeRef.get();
-    if (existing.exists) {
-      // Rare collision — retry once
-      return generateInviteCode();
+      final existing = await codeRef.get();
+      if (existing.exists) continue; // Collision — try next code
+
+      await codeRef.set({
+        'fcm_token': fcmToken,
+        'uuid': profile.uuid,
+        'nickname': profile.nickname,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      state = AsyncData(PairingState(
+        inviteCode: code,
+        isWaiting: true,
+      ));
+
+      // Listen for partner to claim this code
+      _listenForPartner(code);
+      return;
     }
 
-    await codeRef.set({
-      'fcm_token': fcmToken,
-      'user_id': profile.id.toString(),
-      'nickname': profile.nickname,
-      'created_at': DateTime.now().toIso8601String(),
-    });
-
-    state = AsyncData(PairingState(
-      inviteCode: code,
-      isWaiting: true,
+    // All attempts collided (extremely unlikely)
+    state = AsyncData(const PairingState(
+      error: '코드 생성에 실패했습니다. 다시 시도해주세요.',
     ));
-
-    // Listen for partner to claim this code
-    _listenForPartner(code);
   }
 
   /// Enter partner's invite code to pair.
@@ -118,18 +125,22 @@ class PairingNotifier extends AsyncNotifier<PairingState> {
     }
 
     final partnerFcm = data['fcm_token'] as String;
+    final partnerUuid = data['uuid'] as String;
     final partnerNickname = data['nickname'] as String;
 
     // Write my info as response so partner can receive it
     final myFcmToken = await FcmService.getToken();
     await codeRef.child('partner').set({
       'fcm_token': myFcmToken,
-      'user_id': profile.id.toString(),
+      'uuid': profile.uuid,
       'nickname': profile.nickname,
     });
 
-    // Save partner's FCM locally
-    await ref.read(userProfileProvider.notifier).updatePartnerFcm(partnerFcm);
+    // Save partner info locally (both UUID and FCM)
+    await ref.read(userProfileProvider.notifier).updatePartnerInfo(
+          partnerFcm: partnerFcm,
+          partnerUuid: partnerUuid,
+        );
 
     state = AsyncData(PairingState(
       isPaired: true,
@@ -148,10 +159,14 @@ class PairingNotifier extends AsyncNotifier<PairingState> {
 
       final data = event.snapshot.value as Map;
       final partnerFcm = data['fcm_token'] as String;
+      final partnerUuid = data['uuid'] as String;
       final partnerNickname = data['nickname'] as String;
 
-      // Save partner's FCM locally
-      await ref.read(userProfileProvider.notifier).updatePartnerFcm(partnerFcm);
+      // Save partner info locally (both UUID and FCM)
+      await ref.read(userProfileProvider.notifier).updatePartnerInfo(
+            partnerFcm: partnerFcm,
+            partnerUuid: partnerUuid,
+          );
 
       // Cleanup Firebase
       try {

@@ -13,7 +13,7 @@ class BackupService {
   static final BackupService instance = BackupService._();
   BackupService._();
 
-  static const _backupVersion = 2;
+  static const _backupVersion = 3;
 
   static const _tables = [
     'user_profile',
@@ -21,6 +21,7 @@ class BackupService {
     'inventory',
     'diary',
     'anniversary',
+    'gacha_log',
     'purchases',
     'daily_question',
   ];

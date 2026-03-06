@@ -19,7 +19,7 @@
       "$code": {
         ".read": true,
         ".write": true,
-        ".validate": "newData.hasChildren(['fcm_token', 'user_id', 'nickname'])"
+        ".validate": "newData.hasChildren(['fcm_token', 'uuid', 'nickname'])"
       }
     }
   }

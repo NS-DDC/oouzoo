@@ -20,7 +20,7 @@ class MessagesNotifier extends AsyncNotifier<List<MessageModel>> {
 
     final msg = MessageModel(
       id: const Uuid().v4(),
-      senderId: profile.id.toString(),
+      senderId: profile.uuid,
       content: content,
       type: MessageType.text,
       sentAt: DateTime.now(),
@@ -30,10 +30,10 @@ class MessagesNotifier extends AsyncNotifier<List<MessageModel>> {
     final current = state.value ?? [];
     state = AsyncData([msg, ...current]);
 
-    // Relay via Firebase (auto-deleted after delivery)
+    // Relay via Firebase (receiver deletes after processing)
     final channelId = generateChannelId(
-      profile.id.toString(),
-      profile.partnerFcm!,
+      profile.uuid,
+      profile.channelPartnerId!,
     );
     await FirebaseService.instance.sendMessage(
       channelId: channelId,

@@ -20,10 +20,18 @@ final dailyQuestionProvider =
 class DailyQuestionNotifier extends AsyncNotifier<DailyQuestionModel?> {
   StreamSubscription? _answerListener;
 
+  /// Prevents double-awarding the "both answered" bonus within a session.
+  bool _bothBonusAwarded = false;
+
   @override
   Future<DailyQuestionModel?> build() async {
     ref.onDispose(() => _answerListener?.cancel());
+    _bothBonusAwarded = false;
     final result = await _fetchToday();
+    // If both already answered (e.g., from previous session), mark bonus as done
+    if (result != null && result.bothAnswered) {
+      _bothBonusAwarded = true;
+    }
     _startListeningForPartnerAnswer();
     return result;
   }
@@ -78,19 +86,23 @@ class DailyQuestionNotifier extends AsyncNotifier<DailyQuestionModel?> {
         .read(planetProvider.notifier)
         .addShards(AppConstants.shardsPerDailyAnswer);
 
-    final updated = current.copyWith(
-      myAnswer: answer,
-      answeredAt: DateTime.parse(now),
+    // Re-read from DB to catch partner answer that may have arrived concurrently
+    final rows = await db.query(
+      'daily_question',
+      where: 'id = ?',
+      whereArgs: [current.id],
     );
+    final latest = DailyQuestionModel.fromMap(rows.first);
 
-    // Check if both answered for bonus
-    if (updated.bothAnswered) {
+    // Check if both answered for bonus (with guard against double-award)
+    if (latest.bothAnswered && !_bothBonusAwarded) {
+      _bothBonusAwarded = true;
       await ref
           .read(planetProvider.notifier)
           .addShards(AppConstants.shardsPerBothAnswered);
     }
 
-    state = AsyncData(updated);
+    state = AsyncData(latest);
 
     // Relay answer to partner via Firebase
     _relayAnswerToPartner(answer, current.date);
@@ -103,13 +115,13 @@ class DailyQuestionNotifier extends AsyncNotifier<DailyQuestionModel?> {
 
     try {
       final channelId = generateChannelId(
-        profile.id.toString(),
-        profile.partnerFcm!,
+        profile.uuid,
+        profile.channelPartnerId!,
       );
       await FirebaseService.instance.sendDailyAnswer(
         channelId: channelId,
         payload: {
-          'sender_id': profile.id.toString(),
+          'sender_id': profile.uuid,
           'answer': answer,
           'date': date,
           'sent_at': DateTime.now().toIso8601String(),
@@ -136,19 +148,24 @@ class DailyQuestionNotifier extends AsyncNotifier<DailyQuestionModel?> {
     // If this is today's question, update state
     final current = state.value;
     if (current != null && current.date == date) {
-      final updated = current.copyWith(
-        partnerAnswer: answer,
-        partnerAnsweredAt: DateTime.parse(now),
+      // Re-read from DB for consistency
+      final rows = await db.query(
+        'daily_question',
+        where: 'date = ?',
+        whereArgs: [date],
       );
+      if (rows.isEmpty) return;
+      final latest = DailyQuestionModel.fromMap(rows.first);
 
-      // Bonus if both answered
-      if (updated.bothAnswered && current.iAnswered) {
+      // Award bonus if both just completed (with guard against double-award)
+      if (latest.bothAnswered && !_bothBonusAwarded) {
+        _bothBonusAwarded = true;
         await ref
             .read(planetProvider.notifier)
             .addShards(AppConstants.shardsPerBothAnswered);
       }
 
-      state = AsyncData(updated);
+      state = AsyncData(latest);
     }
 
     // Refresh history if it's being watched
@@ -161,19 +178,31 @@ class DailyQuestionNotifier extends AsyncNotifier<DailyQuestionModel?> {
     if (profile == null || !profile.isPaired) return;
 
     final channelId = generateChannelId(
-      profile.id.toString(),
-      profile.partnerFcm!,
+      profile.uuid,
+      profile.channelPartnerId!,
     );
 
     _answerListener?.cancel();
     _answerListener =
         FirebaseService.instance.listenForDailyAnswers(channelId).listen(
-      (event) {
+      (event) async {
         if (event.snapshot.value == null) return;
         final data = event.snapshot.value as Map;
+        final senderId = data['sender_id'] as String;
+
+        // Ignore our own relayed answer
+        if (senderId == profile.uuid) return;
+
         final answer = data['answer'] as String;
         final date = data['date'] as String;
-        receivePartnerAnswer(answer, date);
+        await receivePartnerAnswer(answer, date);
+
+        // Receiver deletes the relay data (guarantees delivery)
+        try {
+          await event.snapshot.ref.remove();
+        } catch (e) {
+          debugPrint('[DailyQuestion] relay cleanup error: $e');
+        }
       },
     );
   }

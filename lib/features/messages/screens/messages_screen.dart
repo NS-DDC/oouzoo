@@ -25,7 +25,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   Widget build(BuildContext context) {
     final messages = ref.watch(messagesProvider);
     final profile = ref.watch(userProfileProvider).value;
-    final myUserId = profile?.id.toString() ?? '';
+    final myUserId = profile?.uuid ?? '';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
