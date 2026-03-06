@@ -69,3 +69,6 @@ lib/firebase_options.dart
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Kenney 원본 에셋 (용량 큰 원본 폴더 — 필요 파일은 assets/images/ 하위로 복사됨)
+assets/Kenney/
