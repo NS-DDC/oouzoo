@@ -30,7 +30,7 @@ class GachaScreen extends ConsumerWidget {
             const SizedBox(height: 32),
             // Free gacha button
             ElevatedButton.icon(
-              onPressed: gacha.canUseFreeGacha
+              onPressed: gacha.value?.canUseFreeGacha ?? false
                   ? () => ref.read(gachaProvider.notifier).doFreeGacha()
                   : null,
               icon: const Icon(Icons.star),
@@ -60,7 +60,7 @@ class GachaScreen extends ConsumerWidget {
             // Shard gacha button
             OutlinedButton.icon(
               onPressed: () =>
-                  ref.read(gachaProvider.notifier).doShardGacha(ref),
+                  ref.read(gachaProvider.notifier).doShardGacha(),
               icon: const Text('⭐'),
               label: Text('별 조각 ${AppConstants.gachaCostInShards}개로 뽑기'),
               style: OutlinedButton.styleFrom(

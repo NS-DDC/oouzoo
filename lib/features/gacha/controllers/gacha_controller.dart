@@ -47,7 +47,7 @@ class GachaNotifier extends AsyncNotifier<GachaState> {
     );
   }
 
-  Future<void> doShardGacha(Ref ref) async {
+  Future<void> doShardGacha() async {
     final planet = ref.read(planetProvider).value;
     if ((planet?.starShards ?? 0) < AppConstants.gachaCostInShards) return;
 

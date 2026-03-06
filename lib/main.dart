@@ -13,10 +13,18 @@ import 'shared/widgets/space_background.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    // Firebase not configured — skipping (test build)
+  }
   await DatabaseHelper.instance.database; // init SQLite
   await AdmobService.initialize();
-  await FcmService.initialize();
+  try {
+    await FcmService.initialize();
+  } catch (e) {
+    // FCM not available without real Firebase config
+  }
   await IapService.instance.initialize();
 
   runApp(const ProviderScope(child: OouzooApp()));
