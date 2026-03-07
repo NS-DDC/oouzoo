@@ -1,48 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// 레이어 방식으로 도트 에셋을 중첩하여 행성을 표현.
-/// 에셋은 Kenney.nl 등 CC0 라이선스 소스 사용.
-class PlanetView extends StatelessWidget {
-  final int level;  // 1–5
-  final int mood;   // 1–5
+import '../controllers/theme_controller.dart';
+
+/// 현재 테마의 레벨별 행성 픽셀아트를 표시.
+class PlanetView extends ConsumerWidget {
+  final int level; // 1–5
+  final int mood; // 1–5
 
   const PlanetView({super.key, required this.level, required this.mood});
 
-  String get _basePlanet => 'assets/images/planets/planet_lv$level.png';
-  String get _moodOverlay => 'assets/images/planets/mood_$mood.png';
+  static const _moods = ['😢', '😕', '😐', '😊', '😍'];
 
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 200,
-      height: 200,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Base planet sprite
-          Image.asset(
-            _basePlanet,
-            width: 200,
-            height: 200,
-            filterQuality: FilterQuality.none, // keep pixel-art crisp
-            errorBuilder: (_, __, ___) => _placeholder(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeAsync = ref.watch(themeProvider);
+
+    return themeAsync.when(
+      data: (theme) {
+        final idx = (level - 1).clamp(0, theme.planetAssets.length - 1);
+        final asset = theme.planetAssets[idx];
+
+        return SizedBox(
+          width: 220,
+          height: 220,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // 행성 픽셀 아트 (crisp rendering)
+              Image.asset(
+                asset,
+                width: 180,
+                height: 180,
+                filterQuality: FilterQuality.none,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              ),
+              // 기분 이모지 버블 (하단)
+              Positioned(
+                bottom: 0,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: const Color(0xFFFFD700), width: 1),
+                  ),
+                  child: Text(
+                    _moods[(mood - 1).clamp(0, 4)],
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                ),
+              ),
+            ],
           ),
-          // Mood overlay
-          Image.asset(
-            _moodOverlay,
-            width: 200,
-            height: 200,
-            filterQuality: FilterQuality.none,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          ),
-        ],
+        );
+      },
+      loading: () => const SizedBox(
+        width: 220,
+        height: 220,
+        child: Center(child: CircularProgressIndicator()),
       ),
+      error: (_, __) => _placeholder(),
     );
   }
 
-  Widget _placeholder() => Container(
-        width: 200,
-        height: 200,
+  static Widget _placeholder() => Container(
+        width: 180,
+        height: 180,
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
           color: Color(0xFF3D1A6E),

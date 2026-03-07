@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/theme/app_theme.dart';
 import '../../home/screens/home_screen.dart';
+import '../../settings/controllers/notification_settings_controller.dart';
 import '../controllers/pairing_controller.dart';
 import '../controllers/user_profile_controller.dart';
 
@@ -65,15 +66,43 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
     );
   }
 
+  Future<void> _showNotificationTimePicker() async {
+    final currentTime =
+        ref.read(notificationTimeProvider).value ?? const TimeOfDay(hour: 20, minute: 0);
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: currentTime,
+      helpText: '매일 질문 알림을 받을 시간',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppTheme.accentCyan,
+              surface: Color(0xFF1E1E3A),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      await ref.read(notificationTimeProvider.notifier).setTime(picked);
+    }
+
+    if (mounted) _goHome();
+  }
+
   @override
   Widget build(BuildContext context) {
     final pairingState = ref.watch(pairingProvider);
 
-    // Navigate to home when pairing succeeds
+    // Navigate to home when pairing succeeds (show notification time picker first)
     ref.listen(pairingProvider, (prev, next) {
       final value = next.value;
       if (value != null && value.isPaired) {
-        _goHome();
+        _showNotificationTimePicker();
       }
     });
 

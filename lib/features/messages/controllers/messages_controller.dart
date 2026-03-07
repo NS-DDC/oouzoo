@@ -14,7 +14,7 @@ class MessagesNotifier extends AsyncNotifier<List<MessageModel>> {
   @override
   Future<List<MessageModel>> build() async => [];
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, {DateTime? deliverAt}) async {
     final profile = ref.read(userProfileProvider).value;
     if (profile == null || !profile.isPaired) return;
 
@@ -22,8 +22,9 @@ class MessagesNotifier extends AsyncNotifier<List<MessageModel>> {
       id: const Uuid().v4(),
       senderId: profile.uuid,
       content: content,
-      type: MessageType.text,
+      type: deliverAt != null ? MessageType.timeCapsule : MessageType.text,
       sentAt: DateTime.now(),
+      deliverAt: deliverAt,
     );
 
     // Optimistic UI update
