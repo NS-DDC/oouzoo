@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/gacha_pool.dart';
 import '../../../core/services/admob_service.dart';
 import '../../../core/utils/constants.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -18,7 +19,7 @@ class GachaScreen extends ConsumerStatefulWidget {
 class _GachaScreenState extends ConsumerState<GachaScreen>
     with TickerProviderStateMixin {
   bool _isSpinning = false;
-  String? _revealedItem;
+  GachaResult? _result;
   late AnimationController _spinController;
   late AnimationController _revealController;
   late Animation<double> _scaleAnim;
@@ -54,23 +55,59 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
     if (_isSpinning) return;
     setState(() {
       _isSpinning = true;
-      _revealedItem = null;
+      _result = null;
     });
     _revealController.reset();
     _spinController.repeat();
 
     await action();
 
-    // Wait for spin to feel dramatic
-    await Future.delayed(const Duration(milliseconds: 1200));
+    // 레어일수록 더 오래 스핀
+    final result = ref.read(gachaProvider).value?.lastResult;
+    final spinMs = result?.item.rarity == GachaRarity.rare ? 2000 : 1200;
+    await Future.delayed(Duration(milliseconds: spinMs));
     _spinController.stop();
 
-    final result = ref.read(gachaProvider).value?.lastResult;
     setState(() {
       _isSpinning = false;
-      _revealedItem = result;
+      _result = result;
     });
     _revealController.forward();
+  }
+
+  Color _rarityColor(GachaRarity rarity) {
+    switch (rarity) {
+      case GachaRarity.rare:
+        return AppTheme.starYellow;
+      case GachaRarity.uncommon:
+        return AppTheme.accentCyan;
+      case GachaRarity.common:
+        return AppTheme.accentPink;
+    }
+  }
+
+  String _rarityLabel(GachaRarity rarity) {
+    switch (rarity) {
+      case GachaRarity.rare:
+        return '★★★ 레어';
+      case GachaRarity.uncommon:
+        return '★★ 언커먼';
+      case GachaRarity.common:
+        return '★ 커먼';
+    }
+  }
+
+  String _typeLabel(GachaItem item) {
+    switch (item.type.name) {
+      case 'pet':
+        return '🐾 펫';
+      case 'decoration':
+        return '✨ 장식';
+      case 'background':
+        return '🌌 배경';
+      default:
+        return item.type.name;
+    }
   }
 
   @override
@@ -93,42 +130,53 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
             children: [
               // ── 뽑기 머신 영역 ──
               SizedBox(
-                height: 200,
-                width: 200,
-                child: _revealedItem != null
-                    ? _buildReveal()
-                    : _buildSpinOrIdle(),
+                height: 220,
+                width: 220,
+                child: _result != null ? _buildReveal() : _buildSpinOrIdle(),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // ── 설명 ──
-              Text(
-                _revealedItem != null
-                    ? '${_getItemName(_revealedItem!)} 획득!'
-                    : _isSpinning
-                        ? '뽑는 중...'
-                        : '매일 1회 무료 뽑기!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _revealedItem != null
-                      ? AppTheme.starYellow
-                      : Colors.white70,
-                  fontSize: 16,
-                  fontWeight: _revealedItem != null
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                ),
-              ),
-              if (_revealedItem != null) ...[
-                const SizedBox(height: 4),
+              // ── 결과 텍스트 ──
+              if (_result != null) ...[
                 Text(
-                  _getRarity(_revealedItem!),
+                  _result!.isDuplicate
+                      ? '이미 보유! 별 조각 +${_result!.bonusShards} ⭐'
+                      : '${_result!.item.name} 획득!',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _getRarityColor(_revealedItem!),
-                    fontSize: 12,
+                    color: _result!.isDuplicate
+                        ? AppTheme.accentCyan
+                        : AppTheme.starYellow,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _typeLabel(_result!.item),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _rarityLabel(_result!.item.rarity),
+                      style: TextStyle(
+                        color: _rarityColor(_result!.item.rarity),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else
+                Text(
+                  _isSpinning ? '뽑는 중...' : '매일 1회 무료 뽑기!',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+
               const SizedBox(height: 32),
 
               // ── 뽑기 버튼들 ──
@@ -136,11 +184,11 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: (gacha.value?.canUseFreeGacha ?? false) &&
-                          !_isSpinning
-                      ? () => _doGacha(
-                          () => ref.read(gachaProvider.notifier).doFreeGacha())
-                      : null,
+                  onPressed:
+                      (gacha.value?.canUseFreeGacha ?? false) && !_isSpinning
+                          ? () => _doGacha(() =>
+                              ref.read(gachaProvider.notifier).doFreeGacha())
+                          : null,
                   icon: const Icon(Icons.star),
                   label: const Text('무료 뽑기 (1회)'),
                   style: ElevatedButton.styleFrom(
@@ -163,7 +211,7 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
                       : () async {
                           final ad = await AdmobService.loadRewardedAd();
                           if (ad == null) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text('광고를 불러올 수 없어요')),
@@ -172,10 +220,8 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
                             return;
                           }
                           ad.show(
-                            onUserEarnedReward: (_, __) => _doGacha(
-                                () => ref
-                                    .read(gachaProvider.notifier)
-                                    .doAdGacha()),
+                            onUserEarnedReward: (_, __) => _doGacha(() =>
+                                ref.read(gachaProvider.notifier).doAdGacha()),
                           );
                         },
                   icon: const Icon(Icons.play_circle_outline),
@@ -195,8 +241,8 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
                   onPressed: _isSpinning ||
                           shards < AppConstants.gachaCostInShards
                       ? null
-                      : () => _doGacha(
-                          () => ref.read(gachaProvider.notifier).doShardGacha()),
+                      : () => _doGacha(() =>
+                          ref.read(gachaProvider.notifier).doShardGacha()),
                   icon: const Text('⭐'),
                   label: Text(
                       '별 조각 ${AppConstants.gachaCostInShards}개 (보유: $shards)'),
@@ -219,17 +265,14 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
     return AnimatedBuilder(
       animation: _spinController,
       builder: (_, __) {
-        final angle = _spinController.value * pi * 6; // 3 full rotations
+        final angle = _spinController.value * pi * 6;
         return Transform.rotate(
           angle: _isSpinning ? angle : 0,
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppTheme.nebulaPurple,
-                  AppTheme.deepSpace,
-                ],
+              gradient: const RadialGradient(
+                colors: [AppTheme.nebulaPurple, AppTheme.deepSpace],
               ),
               border: Border.all(
                 color: _isSpinning
@@ -248,7 +291,9 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
                   : null,
             ),
             child: const Center(
-              child: Text('?', style: TextStyle(fontSize: 64, color: AppTheme.starYellow)),
+              child: Text('?',
+                  style:
+                      TextStyle(fontSize: 64, color: AppTheme.starYellow)),
             ),
           ),
         );
@@ -258,6 +303,9 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
 
   // ── 결과 리빌 ──
   Widget _buildReveal() {
+    final item = _result!.item;
+    final color = _rarityColor(item.rarity);
+
     return AnimatedBuilder(
       animation: _revealController,
       builder: (_, __) => Transform.scale(
@@ -266,19 +314,12 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _getRarityColor(_revealedItem!).withAlpha(100),
-                AppTheme.deepSpace,
-              ],
+              colors: [color.withAlpha(60), AppTheme.deepSpace],
             ),
-            border: Border.all(
-              color: _getRarityColor(_revealedItem!),
-              width: 2,
-            ),
+            border: Border.all(color: color, width: 2),
             boxShadow: [
               BoxShadow(
-                color: _getRarityColor(_revealedItem!)
-                    .withAlpha((_glowAnim.value * 150).toInt()),
+                color: color.withAlpha((_glowAnim.value * 150).toInt()),
                 blurRadius: 30,
                 spreadRadius: 10,
               ),
@@ -289,77 +330,39 @@ class _GachaScreenState extends ConsumerState<GachaScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset(
-                  'assets/images/items/${_revealedItem!}.png',
-                  width: 64,
-                  height: 64,
+                  item.assetPath,
+                  width: 80,
+                  height: 80,
                   filterQuality: FilterQuality.none,
                   errorBuilder: (_, __, ___) => Text(
-                    _getItemEmoji(_revealedItem!),
+                    item.type.name == 'pet' ? '🐾' : '✨',
                     style: const TextStyle(fontSize: 48),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _getItemName(_revealedItem!),
+                  item.name,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                if (_result!.isDuplicate) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '중복! +${_result!.bonusShards}⭐',
+                    style: const TextStyle(
+                      color: AppTheme.accentCyan,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
-  }
-
-  String _getItemName(String id) {
-    switch (id) {
-      case 'rare_background':
-        return '레어 배경';
-      case 'uncommon_decoration':
-        return '장식 아이템';
-      case 'common_sticker':
-        return '스티커';
-      default:
-        return id;
-    }
-  }
-
-  String _getItemEmoji(String id) {
-    switch (id) {
-      case 'rare_background':
-        return '🌌';
-      case 'uncommon_decoration':
-        return '⭐';
-      case 'common_sticker':
-        return '✨';
-      default:
-        return '🎁';
-    }
-  }
-
-  String _getRarity(String id) {
-    switch (id) {
-      case 'rare_background':
-        return '★★★ 레어';
-      case 'uncommon_decoration':
-        return '★★ 언커먼';
-      default:
-        return '★ 커먼';
-    }
-  }
-
-  Color _getRarityColor(String id) {
-    switch (id) {
-      case 'rare_background':
-        return AppTheme.starYellow;
-      case 'uncommon_decoration':
-        return AppTheme.accentCyan;
-      default:
-        return AppTheme.accentPink;
-    }
   }
 }
