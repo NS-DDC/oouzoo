@@ -53,7 +53,7 @@ class QuestionHistoryScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: q.bothAnswered
                       ? Border.all(
-                          color: AppTheme.starYellow.withOpacity(0.3),
+                          color: AppTheme.starYellow.withAlpha(77),
                         )
                       : null,
                 ),
@@ -78,7 +78,7 @@ class QuestionHistoryScreen extends ConsumerWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.starYellow.withOpacity(0.2),
+                              color: AppTheme.starYellow.withAlpha(51),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -183,7 +183,7 @@ class _HistoryAnswer extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withAlpha(51),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

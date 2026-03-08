@@ -174,10 +174,10 @@ class _DailyQuestionScreenState extends ConsumerState<DailyQuestionScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppTheme.nebulaPurple.withOpacity(0.3),
+            color: AppTheme.nebulaPurple.withAlpha(77),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.starYellow.withOpacity(0.3),
+              color: AppTheme.starYellow.withAlpha(77),
             ),
           ),
           child: Column(

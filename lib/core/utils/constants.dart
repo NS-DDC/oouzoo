@@ -20,8 +20,9 @@ class AppConstants {
   static const String productAdFree        = 'com.oouzoo.adfree';
   static const String productShards100     = 'com.oouzoo.shards_100';
   static const String productShards500     = 'com.oouzoo.shards_500';
-  static const String productThemeGalaxy   = 'com.oouzoo.theme_galaxy';
-  static const String productThemeCatPlanet = 'com.oouzoo.theme_cat';
+  static const String productThemeGalaxy    = 'com.oouzoo.theme_galaxy';
+  static const String productThemeShattered = 'com.oouzoo.theme_shattered';
+  static const String productThemeBlackhole = 'com.oouzoo.theme_blackhole';
 
   // ── Ad Unit IDs ───────────────────────────────────────────────────────────
   // isSandbox = true 이면 Google 공식 테스트 ID 사용 (실제 과금 없음)

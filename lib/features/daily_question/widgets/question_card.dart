@@ -53,15 +53,15 @@ class QuestionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.nebulaPurple.withOpacity(0.4),
+        color: AppTheme.nebulaPurple.withAlpha(102),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppTheme.starYellow.withOpacity(0.4),
+          color: AppTheme.starYellow.withAlpha(102),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.nebulaPurple.withOpacity(0.3),
+            color: AppTheme.nebulaPurple.withAlpha(77),
             blurRadius: 20,
             spreadRadius: 2,
           ),

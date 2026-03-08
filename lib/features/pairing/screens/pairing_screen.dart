@@ -216,7 +216,7 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.nebulaPurple,
               foregroundColor: AppTheme.moonWhite,
-              disabledBackgroundColor: AppTheme.nebulaPurple.withOpacity(0.5),
+              disabledBackgroundColor: AppTheme.nebulaPurple.withAlpha(128),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -234,7 +234,7 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
               color: const Color(0xFF1E1E3A),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppTheme.starYellow.withOpacity(0.5),
+                color: AppTheme.starYellow.withAlpha(128),
               ),
             ),
             child: Column(

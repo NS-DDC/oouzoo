@@ -27,7 +27,7 @@ class PixelButton extends StatelessWidget {
           boxShadow: onPressed != null
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.5),
+                    color: color.withAlpha(128),
                     offset: const Offset(3, 3),
                     blurRadius: 0,
                   ),

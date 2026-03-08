@@ -90,7 +90,7 @@ class _AnswerRevealState extends State<AnswerReveal>
               child: _AnswerCard(
                 label: '상대방의 답변',
                 answer: widget.partnerAnswer,
-                color: AppTheme.accentPink.withOpacity(0.2),
+                color: AppTheme.accentPink.withAlpha(51),
                 borderColor: AppTheme.accentPink,
               ),
             ),
@@ -123,7 +123,7 @@ class _AnswerCard extends StatelessWidget {
         color: color,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: borderColor.withOpacity(0.4),
+          color: borderColor.withAlpha(102),
         ),
       ),
       child: Column(

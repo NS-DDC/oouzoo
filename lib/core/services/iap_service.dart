@@ -16,12 +16,13 @@ class IapService {
   final _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
-  static const _productIds = {
+  static final _productIds = {
     AppConstants.productAdFree,
     AppConstants.productShards100,
     AppConstants.productShards500,
     AppConstants.productThemeGalaxy,
-    AppConstants.productThemeCatPlanet,
+    AppConstants.productThemeShattered,
+    AppConstants.productThemeBlackhole,
   };
 
   Future<void> initialize() async {
@@ -88,7 +89,8 @@ class IapService {
         );
 
       case AppConstants.productThemeGalaxy:
-      case AppConstants.productThemeCatPlanet:
+      case AppConstants.productThemeShattered:
+      case AppConstants.productThemeBlackhole:
         await db.rawInsert(
           'INSERT OR IGNORE INTO inventory (item_id, item_type, equipped, obtained_at) VALUES (?, ?, 0, ?)',
           [productId, 'theme', DateTime.now().toIso8601String()],
